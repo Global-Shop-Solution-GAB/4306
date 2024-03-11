@@ -1,0 +1,485 @@
+Program.Sub.ScreenSU.Start
+Gui.f_status..create
+Gui.f_status..caption("XML And FTP Status")
+Gui.f_status..size(9600,1440)
+Gui.f_status..position(0,0)
+Gui.f_status..event(UnLoad,f_status_unload)
+Gui.f_status..alwaysontop(False)
+Gui.f_status..fontname("Arial")
+Gui.f_status..fontsize(8)
+Gui.f_status..forecolor(0)
+Gui.f_status..BackColor(-2147483633)
+Gui.f_status..controlbox(True)
+Gui.f_status..maxbutton(False)
+Gui.f_status..minbutton(True)
+Gui.f_status..mousepointer(0)
+Gui.f_status..moveable(True)
+Gui.f_status..sizeable(False)
+Gui.f_status..ShowInTaskBar(True)
+Gui.f_status..titlebar(True)
+Gui.f_status..MinX(0)
+Gui.f_status..MinY(0)
+Gui.f_status.lbl1.create(label,"",True,8970,255,1,200,200,True,0,"Arial",8,-2147483633,0)
+Gui.f_export..Create
+Gui.f_export..Size(3375,6165)
+Gui.f_export..MinX(0)
+Gui.f_export..MinY(0)
+Gui.f_export..Position(0,0)
+Gui.f_export..BackColor(-2147483633)
+Gui.f_export..ControlBox(True)
+Gui.f_export..MousePointer(0)
+Gui.f_export..Caption("Exporting....")
+Gui.f_export..Event(UnLoad,f_status_unload)
+Gui.f_export.GsGCBooking.Create(GsGridControl)
+Gui.f_export.GsGCBooking.Size(2865,1695)
+Gui.f_export.GsGCBooking.Position(120,105)
+Gui.f_export.GsGCBooking.Visible(True)
+Gui.f_export.GsGCChanges.Create(GsGridControl)
+Gui.f_export.GsGCChanges.Size(2865,1695)
+Gui.f_export.GsGCChanges.Position(120,1860)
+Gui.f_export.GsGCChanges.Visible(True)
+Gui.f_export.GsGCDeletes.Create(GsGridControl)
+Gui.f_export.GsGCDeletes.Size(2865,1695)
+Gui.f_export.GsGCDeletes.Position(120,3615)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Definition.DefaultArgs("ftp_upload","doc")
+V.Global.iSizeLast.Declare(Float,0)
+V.Global.iFileSize.Declare(Float,0)
+V.Global.fStart.Declare(Float,0)
+V.Global.sTransferFile.Declare(String)
+V.Global.sXMLBook.Declare
+V.Global.sXMLChg.Declare
+V.Global.sXMLDel.Declare
+V.Global.sXMLCust.Declare
+V.Global.sXMLSale.Declare
+V.Global.sXMLOrdTxt.Declare
+V.Global.sXMLOrdHistTxt.Declare
+V.Global.sXMLInv.Declare
+V.Global.sXMLBookHist.Declare
+V.Global.sXMLChgHist.Declare
+V.Global.sXMLDelHist.Declare
+V.Global.sXMLCustHist.Declare
+V.Global.sXMLSaleHist.Declare
+V.Global.sXMLOrdTxtHist.Declare
+V.Global.sXMLOrdHistTxtHist.Declare
+V.Global.sXMLInvHist.Declare
+Program.Sub.Definition.DefaultArgs("BuildSerialInv","doc*!*number")
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.sDir.Declare
+	V.Local.bDirExists.Declare
+	
+	F.ODBC.Connection!con.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+	
+	F.Intrinsic.Control.AddEventHandler("FTPConnectionStatus","FTPConnectionEvent")
+	F.Intrinsic.Control.AddEventHandler("FTPError","FTPErrorEvent")
+	F.Intrinsic.Control.AddEventHandler("FTPEndTransfer","FTPEndTransfer")
+	F.Intrinsic.Control.AddEventHandler("FTPStartTransfer","FTPStartTransfer")
+	F.Intrinsic.Control.AddEventHandler("FTPTransfer","FTPTransfer")
+	F.Intrinsic.Control.AddEventHandler("FTPDirList","FTPDirEvent")
+	
+	F.Intrinsic.String.Build("{0}\Export",V.Caller.FilesDir,V.Local.sDir)
+	F.Intrinsic.File.DirExists(V.Local.sDir,V.Local.bDirExists)
+	F.Intrinsic.Control.If(V.Local.bDirExists,=,False)
+		F.Intrinsic.File.CreateDir(V.Local.sDir)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.String.Build("{0}\Export\History",V.Caller.FilesDir,V.Local.sDir)
+	F.Intrinsic.File.DirExists(V.Local.sDir,V.Local.bDirExists)
+	F.Intrinsic.Control.If(V.Local.bDirExists,=,False)
+		F.Intrinsic.File.CreateDir(V.Local.sDir)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.String.Build("{0}\Export\V_Order_Booking.xml",V.Caller.FilesDir,V.Global.sXMLBook)
+	F.Intrinsic.String.Build("{0}\Export\V_Order_Changes.xml",V.Caller.FilesDir,V.Global.sXMLChg)
+	F.Intrinsic.String.Build("{0}\Export\V_Order_Deletes.xml",V.Caller.FilesDir,V.Global.sXMLDel)
+	F.Intrinsic.String.Build("{0}\Export\V_Customer_Master.xml",V.Caller.FilesDir,V.Global.sXMLCust)
+	F.Intrinsic.String.Build("{0}\Export\V_Salespersons.xml",V.Caller.FilesDir,V.Global.sXMLSale)
+	F.Intrinsic.String.Build("{0}\Export\V_Order_Text.xml",V.Caller.FilesDir,V.Global.sXMLOrdTxt)
+	F.Intrinsic.String.Build("{0}\Export\V_Order_Hist_Text.xml",V.Caller.FilesDir,V.Global.sXMLOrdHistTxt)
+	F.Intrinsic.String.Build("{0}\Export\V_Inventory_Mstr.xml",V.Caller.FilesDir,V.Global.sXMLInv)
+	
+	F.Intrinsic.String.Build("{0}\Export\History\V_Order_Booking_{1}.xml",V.Caller.FilesDir,V.Ambient.Date.FormatYYYYMMDD,V.Global.sXMLBookHist)
+	F.Intrinsic.String.Build("{0}\Export\History\V_Order_Changes_{1}.xml",V.Caller.FilesDir,V.Ambient.Date.FormatYYYYMMDD,V.Global.sXMLChgHist)
+	F.Intrinsic.String.Build("{0}\Export\History\V_Order_Deletes_{1}.xml",V.Caller.FilesDir,V.Ambient.Date.FormatYYYYMMDD,V.Global.sXMLDelHist)
+	F.Intrinsic.String.Build("{0}\Export\History\V_Customer_Master_{1}.xml",V.Caller.FilesDir,V.Ambient.Date.FormatYYYYMMDD,V.Global.sXMLCustHist)
+	F.Intrinsic.String.Build("{0}\Export\History\V_Salespersons_{1}.xml",V.Caller.FilesDir,V.Ambient.Date.FormatYYYYMMDD,V.Global.sXMLSaleHist)
+	F.Intrinsic.String.Build("{0}\Export\History\V_Order_Text_{1}.xml",V.Caller.FilesDir,V.Ambient.Date.FormatYYYYMMDD,V.Global.sXMLOrdTxtHist)
+	F.Intrinsic.String.Build("{0}\Export\History\V_Order_Hist_Text_{1}.xml",V.Caller.FilesDir,V.Ambient.Date.FormatYYYYMMDD,V.Global.sXMLOrdHistTxtHist)
+	F.Intrinsic.String.Build("{0}\Export\History\V_Inventory_Mstr_{1}.xml",V.Caller.FilesDir,V.Ambient.Date.FormatYYYYMMDD,V.Global.sXMLInvHist)
+	
+	'Create .csv files for upload
+	F.Data.DataTable.CreateFromSQL("dtBook","con","Select * From V_Order_Booking;",True)
+	F.Data.DataTable.SaveToXML("dtBook",0,True,V.Global.sXMLBook)
+	
+	F.Data.DataTable.CreateFromSQL("dtChg","con","Select * From V_Order_Changes;",True)
+	F.Data.DataTable.SaveToXML("dtChg",0,True,V.Global.sXMLChg)
+	
+	F.Data.DataTable.CreateFromSQL("dtDel","con","Select * From V_Order_Deletes;",True)
+	F.Data.DataTable.SaveToXML("dtDel",0,True,V.Global.sXMLDel)
+	
+	F.Data.DataTable.CreateFromSQL("dtCust","con","Select * From V_Customer_Master;",True)
+	F.Data.DataTable.SaveToXML("dtCust",0,True,V.Global.sXMLCust)
+	
+	F.Data.DataTable.CreateFromSQL("dtSale","con","Select * From V_Salespersons;",True)
+	F.Data.DataTable.SaveToXML("dtSale",0,True,V.Global.sXMLSale)
+	
+	F.Data.DataTable.CreateFromSQL("dtOrdTxt","con","Select * From V_Order_Text;",True)
+	F.Data.DataTable.SaveToXML("dtOrdTxt",0,True,V.Global.sXMLOrdTxt)
+	
+	F.Data.DataTable.CreateFromSQL("dtOrdHistTxt","con","Select * From V_Order_Hist_Text;",True)
+	F.Data.DataTable.SaveToXML("dtOrdHistTxt",0,True,V.Global.sXMLOrdHistTxt)
+	
+	F.Data.DataTable.CreateFromSQL("dtInv","con","Select * From V_Inventory_Mstr;",True)
+	F.Data.DataTable.SaveToXML("dtInv",0,True,V.Global.sXMLInv)
+	
+	F.Data.DataTable.Close("dtBook")
+	F.Data.DataTable.Close("dtChg")
+	F.Data.DataTable.Close("dtDel")
+	F.Data.DataTable.Close("dtCust")
+	F.Data.DataTable.Close("dtSale")
+	F.Data.DataTable.Close("dtOrdTxt")
+	F.Data.DataTable.Close("dtOrdHistTxt")
+	F.Data.DataTable.Close("dtInv")
+	
+	Gui.f_status..Show
+	
+	F.Intrinsic.Control.CallSub(ftp_upload)
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_4306_XML_Order_Export.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.FTPConnectionEvent.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.shold.Declare(String)
+	
+	F.Intrinsic.String.Concat(V.Args.connectionevent," : ",V.Args.description,V.Local.shold)
+	Gui.f_status.lbl1.Caption(V.Local.shold)
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_4306_XML_Order_Export.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.FTPConnectionEvent.End
+
+Program.Sub.FTPErrorEvent.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.shold.Declare(String)
+	
+	F.Intrinsic.String.Concat("ERROR: (",V.Args.ErrorCode,") DESC: ",V.args.description,V.Local.shold)
+	F.Intrinsic.UI.Msgbox(V.Local.shold)
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_4306_XML_Order_Export.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.FTPErrorEvent.End
+
+Program.Sub.FTPEndTransfer.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	Gui.f_status.lbl1.Caption("Transfer Completed")
+'	F.Intrinsic.Control.End
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_4306_XML_Order_Export.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.FTPEndTransfer.End
+
+Program.Sub.FTPStartTransfer.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	Gui.f_status.lbl1.Caption("Transfer Started")
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_4306_XML_Order_Export.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.FTPStartTransfer.End
+
+Program.Sub.FTP_Upload.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.bConnected.Declare
+
+	'To login to your FTP server:
+	F.Communication.FTP.ReadProperty("connected",V.Local.bConnected)
+	F.Intrinsic.Control.If(V.local.bConnected,=,False)
+		F.Communication.FTP.SetProperty("User","export@palettesbywinesburg.com")
+		F.Communication.FTP.SetProperty("Password","FmlL48oH1yxf!")
+		F.Communication.FTP.SetProperty("remoteHost","192.185.133.235")
+'		F.Communication.FTP.SetProperty("remotePort","1234")
+		F.Communication.FTP.Logon
+'		F.Communication.FTP.SetProperty("RemotePath","GENCO_FTP/TMS")
+	F.Intrinsic.Control.EndIf
+	
+	'To check to see if you are actually connected after attempting to logon:
+	F.Communication.FTP.ReadProperty("connected",V.Local.bConnected)
+	F.Intrinsic.Control.If(V.Local.bConnected,=,True)
+		F.Communication.FTP.SetProperty("LocalFile",V.Global.sXMLBook)
+		F.Communication.FTP.SetProperty("RemoteFile","V_Order_Booking.xml")
+		F.Communication.FTP.SetProperty("TransferMode",2)
+		F.Communication.FTP.Upload
+		
+		F.Communication.FTP.SetProperty("LocalFile",V.Global.sXMLChg)
+		F.Communication.FTP.SetProperty("RemoteFile","V_Order_Changes.xml")
+		F.Communication.FTP.SetProperty("TransferMode",2)
+		F.Communication.FTP.Upload
+		
+		F.Communication.FTP.SetProperty("LocalFile",V.Global.sXMLDel)
+		F.Communication.FTP.SetProperty("RemoteFile","V_Order_Deletes.xml")
+		F.Communication.FTP.SetProperty("TransferMode",2)
+		F.Communication.FTP.Upload
+		
+		F.Communication.FTP.SetProperty("LocalFile",V.Global.sXMLCust)
+		F.Communication.FTP.SetProperty("RemoteFile","V_Customer_Master.xml")
+		F.Communication.FTP.SetProperty("TransferMode",2)
+		F.Communication.FTP.Upload
+		
+		F.Communication.FTP.SetProperty("LocalFile",V.Global.sXMLSale)
+		F.Communication.FTP.SetProperty("RemoteFile","V_Salespersons.xml")
+		F.Communication.FTP.SetProperty("TransferMode",2)
+		F.Communication.FTP.Upload
+		
+		F.Communication.FTP.SetProperty("LocalFile",V.Global.sXMLOrdTxt)
+		F.Communication.FTP.SetProperty("RemoteFile","V_Order_Text.xml")
+		F.Communication.FTP.SetProperty("TransferMode",2)
+		F.Communication.FTP.Upload
+		
+		F.Communication.FTP.SetProperty("LocalFile",V.Global.sXMLOrdHistTxt)
+		F.Communication.FTP.SetProperty("RemoteFile","V_Order_Hist_Text.xml")
+		F.Communication.FTP.SetProperty("TransferMode",2)
+		F.Communication.FTP.Upload
+		
+		F.Communication.FTP.SetProperty("LocalFile",V.Global.sXMLInv)
+		F.Communication.FTP.SetProperty("RemoteFile","V_Inventory_Mstr.xml")
+		F.Communication.FTP.SetProperty("TransferMode",2)
+		F.Communication.FTP.Upload
+
+'		V.Local.sRet.Declare
+'		F.Communication.FTP.SetProperty("RemoteFile","V_Order_Booking.xml")
+'		F.Communication.FTP.ReadProperty("FileSize",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+'		F.Communication.FTP.ReadProperty("FileTime",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+'		
+'		F.Communication.FTP.SetProperty("RemoteFile","V_Order_Changes.xml")
+'		F.Communication.FTP.ReadProperty("FileSize",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+'		F.Communication.FTP.ReadProperty("FileTime",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+'		
+'		F.Communication.FTP.SetProperty("RemoteFile","V_Order_Deletes.xml")
+'		F.Communication.FTP.ReadProperty("FileSize",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+'		F.Communication.FTP.ReadProperty("FileTime",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+'		
+'		F.Communication.FTP.SetProperty("RemoteFile","V_Customer_Master.xml")
+'		F.Communication.FTP.ReadProperty("FileSize",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+'		F.Communication.FTP.ReadProperty("FileTime",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+'
+'		F.Communication.FTP.SetProperty("RemoteFile","V_Salespersons.xml")
+'		F.Communication.FTP.ReadProperty("FileSize",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+'		F.Communication.FTP.ReadProperty("FileTime",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+'		
+'		F.Communication.FTP.SetProperty("RemoteFile","V_Order_Text.xml")
+'		F.Communication.FTP.ReadProperty("FileSize",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+'		F.Communication.FTP.ReadProperty("FileTime",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+'		
+'		F.Communication.FTP.SetProperty("RemoteFile","V_Order_Hist_Text.xml")
+'		F.Communication.FTP.ReadProperty("FileSize",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+'		F.Communication.FTP.ReadProperty("FileTime",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+'		
+'		F.Communication.FTP.SetProperty("RemoteFile","V_Inventory_Mstr.xml")
+'		F.Communication.FTP.ReadProperty("FileSize",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+'		F.Communication.FTP.ReadProperty("FileTime",V.Local.sRet)
+'		Function.Intrinsic.UI.Msgbox(V.Local.sRet)
+
+		F.Intrinsic.Control.CallSub(filecleanup)
+		
+		F.Communication.FTP.Logoff
+		F.Intrinsic.Control.End
+
+	F.Intrinsic.Control.Else
+		F.Communication.FTP.Logoff
+		F.Intrinsic.Control.End
+
+	F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_4306_XML_Order_Export.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.FTP_Upload.End
+
+Program.Sub.FTPTransfer.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	'Event handles upload, append and download
+	
+	V.local.fElapsed.Declare(Float)
+	V.Local.iSizeNow.Declare(Long)
+	V.Local.iResult.Declare(Long)
+	V.Local.idif.Declare(Long)
+	V.Local.shold.Declare(String)
+	
+	F.Intrinsic.control.If(V.Global.iSizeLast,=,0)
+		V.Local.iResult.Set(0)
+		V.Global.iSizeLast.Set(V.Args.bytestransferred)
+	F.Intrinsic.Control.ElseIf(V.Global.iSizeLast,<>,0)
+		V.local.fElapsed.Set(V.Ambient.Timer)
+		F.Intrinsic.Math.Sub(V.local.fElapsed,V.global.fStart,V.Local.idif)
+		F.Intrinsic.Math.Sub(V.Global.iSizeLast,V.Args.bytestransferred,V.Local.iResult)
+		F.Intrinsic.Control.If(V.Local.idif,<>,0)
+			F.Intrinsic.Math.Div(V.Local.iResult,V.Local.idif,V.Local.iResult)
+		F.Intrinsic.Control.endif
+		V.Global.iSizeLast.Set(V.Args.bytestransferred)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.Local.iResult,<>,0)
+		F.Intrinsic.String.Concat("Transfering at ",V.Local.iResult.String," KB Per Second",V.Local.shold)
+		Gui.f_status.lbl1.caption(V.Local.shold)
+	F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_4306_XML_Order_Export.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.FTPTransfer.End
+
+Program.Sub.FTPDirEvent.Start
+Program.Sub.FTPDirEvent.End
+
+Program.Sub.f_status_unload.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	F.Intrinsic.Control.End 
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_4306_XML_Order_Export.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.f_status_unload.End
+
+Program.Sub.FileCleanup.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.sDir.Declare
+	V.Local.sFiles.Declare
+	V.Local.sNames.Declare
+	V.Local.dFileData.Declare
+	V.Local.iCnt.Declare
+	V.Local.iDateDiff.Declare
+	V.Local.iRet.Declare
+	V.Local.bFileExists.Declare
+	
+	F.Intrinsic.File.Exists(V.Global.sXMLBookHist,V.Local.bFileExists)
+	F.Intrinsic.Control.If(V.Local.bFileExists)
+		F.Intrinsic.File.DeleteFile(V.Global.sXMLBookHist)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.File.Exists(V.Global.sXMLChgHist,V.Local.bFileExists)
+	F.Intrinsic.Control.If(V.Local.bFileExists)
+		F.Intrinsic.File.DeleteFile(V.Global.sXMLChgHist)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.File.Exists(V.Global.sXMLDelHist,V.Local.bFileExists)
+	F.Intrinsic.Control.If(V.Local.bFileExists)
+		F.Intrinsic.File.DeleteFile(V.Global.sXMLDelHist)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.File.Exists(V.Global.sXMLCustHist,V.Local.bFileExists)
+	F.Intrinsic.Control.If(V.Local.bFileExists)
+		F.Intrinsic.File.DeleteFile(V.Global.sXMLCustHist)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.File.Exists(V.Global.sXMLSaleHist,V.Local.bFileExists)
+	F.Intrinsic.Control.If(V.Local.bFileExists)
+		F.Intrinsic.File.DeleteFile(V.Global.sXMLSaleHist)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.File.Exists(V.Global.sXMLOrdTxtHist,V.Local.bFileExists)
+	F.Intrinsic.Control.If(V.Local.bFileExists)
+		F.Intrinsic.File.DeleteFile(V.Global.sXMLOrdTxtHist)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.File.Exists(V.Global.sXMLOrdHistTxtHist,V.Local.bFileExists)
+	F.Intrinsic.Control.If(V.Local.bFileExists)
+		F.Intrinsic.File.DeleteFile(V.Global.sXMLOrdHistTxtHist)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.File.Exists(V.Global.sXMLInvHist,V.Local.bFileExists)
+	F.Intrinsic.Control.If(V.Local.bFileExists)
+		F.Intrinsic.File.DeleteFile(V.Global.sXMLInvHist)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.File.MoveFile(V.Global.sXMLBook,V.Global.sXMLBookHist,V.Local.iRet)
+	F.Intrinsic.File.MoveFile(V.Global.sXMLChg,V.Global.sXMLChgHist,V.Local.iRet)
+	F.Intrinsic.File.MoveFile(V.Global.sXMLDel,V.Global.sXMLDelHist,V.Local.iRet)
+	F.Intrinsic.File.MoveFile(V.Global.sXMLCust,V.Global.sXMLCustHist,V.Local.iRet)
+	F.Intrinsic.File.MoveFile(V.Global.sXMLSale,V.Global.sXMLSaleHist,V.Local.iRet)
+	F.Intrinsic.File.MoveFile(V.Global.sXMLOrdTxt,V.Global.sXMLOrdTxtHist,V.Local.iRet)
+	F.Intrinsic.File.MoveFile(V.Global.sXMLOrdHistTxt,V.Global.sXMLOrdHistTxtHist,V.Local.iRet)
+	F.Intrinsic.File.MoveFile(V.Global.sXMLInv,V.Global.sXMLInvHist,V.Local.iRet)
+	
+	'Move files to history and clean up the history folder
+	F.Intrinsic.String.Build("{0}\Export\History\",V.Caller.FilesDir,V.Local.sDir)
+	F.Intrinsic.File.GetFileList(V.Local.sDir,1,V.Local.sFiles)
+	F.Intrinsic.String.Split(V.Local.sFiles,":",V.Local.sNames)
+	F.Intrinsic.Control.For(V.Local.iCnt,0,V.Local.sNames.UBound,1)
+		F.Intrinsic.String.Build("{0}{1}",V.Local.sDir,V.Local.sNames(V.Local.iCnt),V.Local.sFiles)
+		F.Intrinsic.File.GetFileDateTimeExtended(V.Local.sFiles,3,True,V.Local.dFileData)
+		F.Intrinsic.Date.DateDiff("D",V.Ambient.Date,V.Local.dFileData,V.Local.iDateDiff)
+		F.Intrinsic.Control.If(V.Local.iDateDiff,<,-30)
+			F.Intrinsic.File.DeleteFile(V.Local.sFiles)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.iCnt)
+
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: GAB_4306_XML_Order_Export.g2u{0}{0}Subroutine: {1}{0}Error Occurred {2} with description {3}.",V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.FileCleanup.End
+
+Program.Sub.Comments.Start
+${$0$}$GAB_4306_XML_Booking_Export$}$AGV$}$12/09/2016 2:39:18 PM$}$False
+Program.Sub.Comments.End
